@@ -1,0 +1,63 @@
+version: '3.7'  # Aktualisieren Sie die Version für bessere Funktionalität
+
+services:
+  pihole1:
+    container_name: pihole1
+    image: pihole/pihole:latest
+    networks:
+      dns_network:
+        ipv4_address: 172.24.0.3
+    environment:
+      WEBPASSWORD: "Passwort123!"
+    volumes:
+      - "./pihole/pihole1/etc/pihole/:/etc/pihole/"
+      - "./pihole/pihole1/etc/dnsmasq.d/:/etc/dnsmasq.d/"
+    restart: unless-stopped
+
+  pihole2:
+    container_name: pihole2
+    image: pihole/pihole:latest
+    networks:
+      dns_network:
+        ipv4_address: 172.24.0.4
+    environment:
+      WEBPASSWORD: "Passwort123!"
+    volumes:
+      - "./pihole/pihole2/etc/pihole/:/etc/pihole/"
+      - "./pihole/pihole2/etc/dnsmasq.d/:/etc/dnsmasq.d/"
+    restart: unless-stopped
+
+  dnsdist:
+    container_name: dnsdist
+    image: powerdns/dnsdist-master:latest
+    networks:
+      dns_network:
+        ipv4_address: 172.24.0.2
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - "./dnsdist/dnsdist.conf:/etc/dnsdist/dnsdist.conf"
+    depends_on:
+      - pihole1
+      - pihole2
+    restart: unless-stopped
+
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    networks:
+      dns_network:
+        ipv4_address: 172.24.0.1
+    ports:
+      - "8080:80"
+    volumes:
+      - "./nginx/nginx.conf:/etc/nginx/nginx.conf"
+    depends_on:
+      - pihole1
+      - pihole2
+    restart: unless-stopped
+
+networks:
+  dns_network:
+    external: true
